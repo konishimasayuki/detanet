@@ -8,7 +8,13 @@
  */
 
 const { chromium } = require('playwright');
+const { Redis } = require('@upstash/redis');
 const fs = require('fs');
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 const EMAIL = process.env.SITE7_EMAIL;
 const PASSWORD = process.env.SITE7_PASSWORD;
@@ -180,6 +186,17 @@ async function main() {
   console.log(`完了。${results.length}台分のデータを result.json に保存しました。`);
   console.log('狙い目TOP10:');
   console.table(results.slice(0, 10));
+
+  // Upstashに保存(Next.js側の画面がここから読む)
+  try {
+    await redis.set('goldrush-tosu:latest', {
+      updatedAt: new Date().toISOString(),
+      results,
+    });
+    console.log('Upstashへの保存に成功しました。');
+  } catch (e) {
+    console.error('Upstashへの保存に失敗しました:', e.message);
+  }
 
   await browser.close();
 }

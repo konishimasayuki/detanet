@@ -11,8 +11,8 @@ const { Redis } = require('@upstash/redis');
 const fs = require('fs');
 
 // --- Upstash接続情報(Vercelの環境変数ページから同じ値をここに転記) ---
-const UPSTASH_URL = 'ここにUPSTASH_REDIS_REST_URLの値を貼る';
-const UPSTASH_TOKEN = 'ここにUPSTASH_REDIS_REST_TOKENの値を貼る';
+const UPSTASH_URL = 'https://absolute-ibex-40607.upstash.io';
+const UPSTASH_TOKEN = 'AZ6fAAIgcDE0YjA4YjhiZWQ4MmY0MjZiOTcwNDdiYTY3YjM1YjRiNw';
 
 const redis = new Redis({
   url: UPSTASH_URL,

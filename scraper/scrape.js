@@ -24,12 +24,17 @@ const EMAIL = 'ninjin.konishi@gmail.com';
 const PASSWORD = 'masa0224';
 const HALLCODE = 'ba4b622a8bc31dc181da4cc498b86113'; // ゴールドラッシュ鳥栖店
 
-// ---- 機種マスタ(後で拡張。天井ゲーム数と当選確率の目安) ----
-// modelcode をキーに、天井と参考確率を持たせる。無ければデフォルト値で計算。
-const MODEL_MASTER = {
-  // 例: '120279': { name: 'L東京喰種', tenjyo: 1500, prob: 1 / 400 },
-};
-const DEFAULT_MODEL = { tenjyo: null, prob: 1 / 300 };
+// 機種ごとの設定(天井・期待収支・ゲーム単価)は、Next.js側の「設定」画面から
+// Upstashの settings:${HALLCODE} キーに保存される。ここではその値を読むだけ。
+async function loadSettings(hallcode) {
+  try {
+    const settings = await redis.get(`settings:${hallcode}`);
+    return settings || {};
+  } catch (e) {
+    console.error('設定の読み込みに失敗しました:', e.message);
+    return {};
+  }
+}
 
 async function login(page) {
   await page.goto('https://www.d-deltanet.com/pc/MypageLoginTop.do', {
@@ -139,33 +144,70 @@ async function getTablesForModel(page, model) {
   return tables;
 }
 
-async function fetchLastGame(context, tableInfo, day = 1) {
+async function fetchDayInfo(context, tableInfo, day) {
   const url = `https://www.d-deltanet.com/pc/TableHistory.do?hallcode=${tableInfo.hallcode}&tablenum=${tableInfo.tablenum}&day=${day}&sort=2&sortcond=2&uritanka=${tableInfo.uritanka}&modelcode=${tableInfo.modelcode}`;
 
   const res = await context.request.get(url);
   const html = await res.text();
 
-  // 一番上の行の「ゲーム」列(=最終ゲーム数)を正規表現で抽出
-  // 表構造: 大当り回数 | 種類 | 時間 | ゲーム | 獲得数
-  // 最初の行は "--","--","--", <ゲーム数>, "--"
-  const match = html.match(
+  // 一番上の行の「ゲーム」列(=その日の終了時点での最終ゲーム数)
+  const gMatch = html.match(
     /<td[^>]*>--<\/td>\s*<td[^>]*>--<\/td>\s*<td[^>]*>--<\/td>\s*<td[^>]*>(\d+)<\/td>/
   );
-  return match ? parseInt(match[1], 10) : null;
+  // 「前日 大当り回数：2回」「2日前 大当り回数：0回」等からその日の大当り回数を取得
+  const hitMatch = html.match(/大当り回数[：:]\s*(\d+)\s*回/);
+
+  return {
+    g: gMatch ? parseInt(gMatch[1], 10) : null,
+    hits: hitMatch ? parseInt(hitMatch[1], 10) : null,
+  };
 }
 
-function calcScore(lastGame, modelcode) {
-  const master = MODEL_MASTER[modelcode] || DEFAULT_MODEL;
-  // シンプルな期待値スコア: 平均当選ゲーム数を超えた分をスコア化
-  const avgGames = 1 / master.prob;
-  const score = lastGame - avgGames;
-  return { score: Math.round(score), avgGames: Math.round(avgGames), tenjyo: master.tenjyo };
+/**
+ * 「1日前が大当り0回なら2日前(以前)から宵越しで続く」ロジック。
+ * 大当りがあった日に到達するまで、日を遡ってゲーム数を合算する(最大7日前まで)。
+ */
+async function computeHamari(context, tableInfo) {
+  const days = [];
+  let hamariG = 0;
+
+  for (let day = 1; day <= 7; day++) {
+    const info = await fetchDayInfo(context, tableInfo, day);
+    if (info.g === null) break;
+
+    days.push({ day, g: info.g, hits: info.hits });
+    hamariG += info.g;
+
+    // その日に大当りがあれば、そこでハマりは切れているので遡るのを止める
+    if (info.hits === null || info.hits > 0) break;
+  }
+
+  return { hamariG, days };
+}
+
+function calcExpectedValue(hamariG, modelName, settings) {
+  const conf = (settings && settings[modelName]) || null;
+
+  if (!conf || !conf.tenjyo) {
+    // 設定が無い機種はざっくり平均ゲーム数超過分だけの参考値
+    const avgGames = 300;
+    return { expectedValue: Math.round((hamariG - avgGames) * 20), tenjyoUsed: null };
+  }
+
+  const remaining = Math.max(conf.tenjyo - hamariG, 0);
+  const costPerGame = conf.costPerGameYen ?? 20;
+  const payout = conf.payoutYen ?? 0;
+  const expectedValue = Math.round(payout - remaining * costPerGame);
+
+  return { expectedValue, tenjyoUsed: conf.tenjyo };
 }
 
 async function main() {
   const browser = await chromium.launch();
   const context = await browser.newContext();
   const page = await context.newPage();
+
+  const settings = await loadSettings(HALLCODE);
 
   await login(page);
   const models = await getModelList(page, HALLCODE);
@@ -176,17 +218,20 @@ async function main() {
     try {
       const tables = await getTablesForModel(page, model);
       for (const t of tables) {
-        const lastGame = await fetchLastGame(context, t, 1); // 1 = 前日
-        if (lastGame === null) continue;
-        const { score, avgGames, tenjyo } = calcScore(lastGame, t.modelcode);
+        const { hamariG, days } = await computeHamari(context, t);
+        if (hamariG === 0 && days.length === 0) continue;
+
+        const { expectedValue, tenjyoUsed } = calcExpectedValue(hamariG, model.name, settings);
+
         results.push({
           modelName: model.name,
           modelcode: t.modelcode,
           tableNumber: t.tableNumber,
-          lastGame,
-          avgGames,
-          tenjyo,
-          score,
+          hamariG,
+          day1G: days[0] ? days[0].g : null,
+          day2G: days[1] ? days[1].g : null,
+          tenjyoUsed,
+          expectedValue,
         });
       }
       // 機種一覧ページに戻る(次の機種のlistClickのため)
@@ -199,8 +244,8 @@ async function main() {
     }
   }
 
-  // スコア降順(ハマり度が高い順)にソート
-  results.sort((a, b) => b.score - a.score);
+  // 期待値(円)降順にソート
+  results.sort((a, b) => b.expectedValue - a.expectedValue);
 
   fs.writeFileSync('result.json', JSON.stringify(results, null, 2), 'utf-8');
   console.log(`完了。${results.length}台分のデータを result.json に保存しました。`);

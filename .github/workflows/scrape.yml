@@ -1,0 +1,31 @@
+name: Site7 Scrape
+
+on:
+  schedule:
+    - cron: '30 14 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        working-directory: scraper
+        run: npm install
+      - name: Install Playwright browsers
+        working-directory: scraper
+        run: npx playwright install --with-deps chromium
+      - name: Run scraper
+        working-directory: scraper
+        env:
+          SITE7_EMAIL: ${{ secrets.SITE7_EMAIL }}
+          SITE7_PASSWORD: ${{ secrets.SITE7_PASSWORD }}
+        run: node scrape.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: result
+          path: scraper/result.json

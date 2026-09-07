@@ -4,26 +4,25 @@
  * 期待値計算用の狙い台リストを出力する。
  *
  * 実行: node scrape.js
- * 必要な環境変数: SITE7_EMAIL, SITE7_PASSWORD
  */
 
 const { chromium } = require('playwright');
 const { Redis } = require('@upstash/redis');
 const fs = require('fs');
 
+// --- Upstash接続情報(Vercelの環境変数ページから同じ値をここに転記) ---
+const UPSTASH_URL = 'ここにUPSTASH_REDIS_REST_URLの値を貼る';
+const UPSTASH_TOKEN = 'ここにUPSTASH_REDIS_REST_TOKENの値を貼る';
+
 const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  url: UPSTASH_URL,
+  token: UPSTASH_TOKEN,
 });
 
-const EMAIL = process.env.SITE7_EMAIL;
-const PASSWORD = process.env.SITE7_PASSWORD;
+// --- サイトセブン ログイン情報 ---
+const EMAIL = 'ninjin.konishi@gmail.com';
+const PASSWORD = 'masa0224';
 const HALLCODE = 'ba4b622a8bc31dc181da4cc498b86113'; // ゴールドラッシュ鳥栖店
-
-if (!EMAIL || !PASSWORD) {
-  console.error('SITE7_EMAIL / SITE7_PASSWORD が設定されていません');
-  process.exit(1);
-}
 
 // ---- 機種マスタ(後で拡張。天井ゲーム数と当選確率の目安) ----
 // modelcode をキーに、天井と参考確率を持たせる。無ければデフォルト値で計算。

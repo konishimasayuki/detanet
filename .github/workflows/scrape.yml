@@ -21,6 +21,9 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run scraper
         working-directory: scraper
+        env:
+          SITE7_EMAIL: ${{ secrets.SITE7_EMAIL }}
+          SITE7_PASSWORD: ${{ secrets.SITE7_PASSWORD }}
         run: node scrape.js
       - uses: actions/upload-artifact@v4
         with:

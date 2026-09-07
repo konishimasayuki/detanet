@@ -1,0 +1,38 @@
+name: Site7 Scrape
+
+on:
+  schedule:
+    # 毎日 23:30 JST (UTC 14:30) に実行
+    - cron: '30 14 * * *'
+  workflow_dispatch: {} # 手動実行もできるように
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run scraper
+        env:
+          SITE7_EMAIL: ${{ secrets.SITE7_EMAIL }}
+          SITE7_PASSWORD: ${{ secrets.SITE7_PASSWORD }}
+        run: node scrape.js
+
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: result
+          path: result.json
+
+      # TODO: ここでUpstash Redis等に結果をPUSHして、
+      # Next.js側の画面から見れるようにする処理を追加

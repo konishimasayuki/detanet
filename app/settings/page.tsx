@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import NavMenu from '../components/NavMenu';
 
 type ModelSetting = {
   tenjyo: number | null;
@@ -78,7 +77,6 @@ export default function SettingsPage() {
           <p className="board-eyebrow">GOLDRUSH TOSU</p>
           <h1 className="board-title">機種設定</h1>
         </div>
-        <NavMenu />
       </header>
 
       <p className="settings-help">

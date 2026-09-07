@@ -1,7 +1,7 @@
 .board {
   max-width: 820px;
   margin: 0 auto;
-  padding: 48px 24px 80px;
+  padding: 48px 24px 96px;
 }
 
 .board-header {
@@ -145,12 +145,12 @@
   color: var(--text-dim);
 }
 
-@media (max-width: 640px) {
-  .board-columns,
-  .board-row {
-    grid-template-columns: 32px 1fr 80px 100px;
-  }
-  .col-day {
-    display: none;
-  }
+.board-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.board-table-scroll .board-columns,
+.board-table-scroll .board-row {
+  min-width: 620px;
 }

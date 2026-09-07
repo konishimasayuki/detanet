@@ -1,5 +1,4 @@
 import { redis } from '@/lib/redis';
-import NavMenu from './components/NavMenu';
 import './dashboard.css';
 
 type TableResult = {
@@ -60,49 +59,48 @@ export default async function Home() {
           <p className="board-eyebrow">GOLDRUSH TOSU</p>
           <h1 className="board-title">狙い台リスト</h1>
         </div>
-        <div className="board-header-right">
-          <div className="board-meta mono">
-            <span>更新 {new Date(shown.updatedAt).toLocaleString('ja-JP')}</span>
-            {isDemo && <span className="board-demo-tag">仮データ表示中</span>}
-          </div>
-          <NavMenu />
+        <div className="board-meta mono">
+          <span>更新 {new Date(shown.updatedAt).toLocaleString('ja-JP')}</span>
+          {isDemo && <span className="board-demo-tag">仮データ表示中</span>}
         </div>
       </header>
 
-      <div className="board-columns mono">
-        <span className="col-rank">順位</span>
-        <span className="col-name">機種 / 台番号</span>
-        <span className="col-hamari">ハマりG</span>
-        <span className="col-day">1日前</span>
-        <span className="col-day">2日前</span>
-        <span className="col-value">期待値</span>
-      </div>
+      <div className="board-table-scroll">
+        <div className="board-columns mono">
+          <span className="col-rank">順位</span>
+          <span className="col-name">機種 / 台番号</span>
+          <span className="col-hamari">ハマりG</span>
+          <span className="col-day">1日前</span>
+          <span className="col-day">2日前</span>
+          <span className="col-value">期待値</span>
+        </div>
 
-      <ol className="board-list">
-        {top.map((row, i) => {
-          const intensity = Math.max(row.expectedValue, 0) / maxAbs;
-          const isPositive = row.expectedValue > 0;
-          return (
-            <li
-              key={i}
-              className={`board-row${i === 0 ? ' board-row--top' : ''}`}
-              style={{ '--intensity': intensity } as React.CSSProperties}
-            >
-              <span className="col-rank mono">{String(i + 1).padStart(2, '0')}</span>
-              <span className="col-name">
-                <span className="row-model">{row.modelName ?? '(不明)'}</span>
-                <span className="row-table mono">#{row.tableNumber ?? '-'}</span>
-              </span>
-              <span className="col-hamari mono">{row.hamariG.toLocaleString()}</span>
-              <span className="col-day mono">{row.day1G !== null ? row.day1G.toLocaleString() : '-'}</span>
-              <span className="col-day mono">{row.day2G !== null ? row.day2G.toLocaleString() : '-'}</span>
-              <span className={`col-value mono${isPositive ? ' value-positive' : ' value-negative'}`}>
-                {formatYen(row.expectedValue)}
-              </span>
-            </li>
-          );
-        })}
-      </ol>
+        <ol className="board-list">
+          {top.map((row, i) => {
+            const intensity = Math.max(row.expectedValue, 0) / maxAbs;
+            const isPositive = row.expectedValue > 0;
+            return (
+              <li
+                key={i}
+                className={`board-row${i === 0 ? ' board-row--top' : ''}`}
+                style={{ '--intensity': intensity } as React.CSSProperties}
+              >
+                <span className="col-rank mono">{String(i + 1).padStart(2, '0')}</span>
+                <span className="col-name">
+                  <span className="row-model">{row.modelName ?? '(不明)'}</span>
+                  <span className="row-table mono">#{row.tableNumber ?? '-'}</span>
+                </span>
+                <span className="col-hamari mono">{row.hamariG.toLocaleString()}</span>
+                <span className="col-day mono">{row.day1G !== null ? row.day1G.toLocaleString() : '-'}</span>
+                <span className="col-day mono">{row.day2G !== null ? row.day2G.toLocaleString() : '-'}</span>
+                <span className={`col-value mono${isPositive ? ' value-positive' : ' value-negative'}`}>
+                  {formatYen(row.expectedValue)}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </main>
   );
 }

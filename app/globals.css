@@ -1,0 +1,101 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+JP:wght@500;700;900&display=swap');
+
+:root {
+  --bg: #14161a;
+  --bg-raised: #1c1f25;
+  --line: #2a2e36;
+  --text: #e7e9ec;
+  --text-dim: #8b909c;
+  --amber: #e8a33d;
+  --amber-dim: #7a5b2a;
+  --danger: #d1584a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans JP', sans-serif;
+}
+
+.mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ---- ログイン画面 ---- */
+.login-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+}
+
+.login-card {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  padding: 48px 36px;
+  border-radius: 3px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.login-title {
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 10px;
+  color: var(--text);
+  letter-spacing: 0.05em;
+}
+
+.login-input {
+  padding: 11px 14px;
+  font-size: 15px;
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  color: var(--text);
+}
+
+.login-input:focus {
+  outline: none;
+  border-color: var(--amber);
+}
+
+.login-input::placeholder {
+  color: var(--text-dim);
+}
+
+.login-button {
+  margin-top: 8px;
+  padding: 11px 14px;
+  font-size: 15px;
+  font-weight: 700;
+  background: var(--amber);
+  color: #14161a;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+}
+
+.login-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.login-error {
+  color: var(--danger);
+  font-size: 12px;
+  margin: 0;
+}

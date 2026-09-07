@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-const APP_LOGIN_ID = 'gold';
+const APP_LOGIN_ID = 'demo';
 const APP_LOGIN_PASSWORD = '1234';
 
 export async function POST(req: Request) {

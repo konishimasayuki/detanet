@@ -1,3 +1,9 @@
+import './globals.css';
+
+export const metadata = {
+  title: 'ログイン',
+};
+
 export default function RootLayout({
   children,
 }: {

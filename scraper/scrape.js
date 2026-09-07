@@ -33,26 +33,47 @@ const DEFAULT_MODEL = { tenjyo: null, prob: 1 / 300 };
 
 async function login(page) {
   await page.goto('https://www.d-deltanet.com/pc/MypageLoginTop.do', {
-    waitUntil: 'domcontentloaded',
+    waitUntil: 'networkidle',
+    timeout: 60000,
+  }).catch(() => {
+    // networkidleが取れない場合もあるので、失敗しても続行する
   });
 
-  // ラベル基準で入力欄を探す(name属性が不明でも動くようにする)
-  const emailInput = page.locator('input[type="text"], input[type="email"]').first();
-  const passwordInput = page.locator('input[type="password"]').first();
+  try {
+    // メールアドレス欄: 「メールアドレス」というテキストの近くにある入力欄を優先的に探す
+    let emailInput = page.locator('input').filter({ hasNot: page.locator('[type="password"]') }).first();
 
-  await emailInput.fill(EMAIL);
-  await passwordInput.fill(PASSWORD);
+    // ページ内に複数の input[type=text] がある可能性が高いので、
+    // 「メールアドレス」というラベルの直後の input を優先して探す
+    const byLabel = page.getByText('メールアドレス', { exact: false }).locator('xpath=following::input[1]');
+    if (await byLabel.count() > 0) {
+      emailInput = byLabel.first();
+    }
 
-  await Promise.all([
-    page.waitForNavigation({ waitUntil: 'domcontentloaded' }).catch(() => {}),
-    page.getByRole('button', { name: /ログイン/ }).first().click().catch(async () => {
-      // ボタンが<input type="submit">の場合のフォールバック
-      await page.locator('input[type="submit"], input[value*="ログイン"]').first().click();
-    }),
-  ]);
+    const passwordInput = page.locator('input[type="password"]').first();
+
+    await emailInput.waitFor({ state: 'visible', timeout: 20000 });
+    await emailInput.fill(EMAIL);
+    await passwordInput.fill(PASSWORD);
+
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {}),
+      page.getByRole('button', { name: /ログイン/ }).first().click({ timeout: 10000 }).catch(async () => {
+        await page.locator('input[type="submit"], input[value*="ログイン"], button:has-text("ログイン")').first().click();
+      }),
+    ]);
+  } catch (e) {
+    // 失敗時にスクリーンショットとHTMLを保存(GitHub ActionsのArtifactで確認できるようにする)
+    await page.screenshot({ path: 'login-error.png', fullPage: true }).catch(() => {});
+    const html = await page.content().catch(() => '(取得失敗)');
+    fs.writeFileSync('login-error.html', html, 'utf-8');
+    console.error('ログイン処理でエラー:', e.message);
+    throw e;
+  }
 
   const url = page.url();
   if (url.includes('MypageLoginTop.do')) {
+    await page.screenshot({ path: 'login-error.png', fullPage: true }).catch(() => {});
     throw new Error('ログインに失敗した可能性があります。認証情報を確認してください。');
   }
   console.log('ログイン成功:', url);

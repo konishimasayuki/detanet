@@ -1,22 +1,13 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-// ID/パスワードは環境変数(Vercelの Settings > Environment Variables)に設定する。
-// APP_LOGIN_ID / APP_LOGIN_PASSWORD
-// コード上には値を一切書かない。
+const APP_LOGIN_ID = 'gold';
+const APP_LOGIN_PASSWORD = '1234';
 
 export async function POST(req: Request) {
   const { id, pw } = await req.json();
 
-  const validId = process.env.APP_LOGIN_ID;
-  const validPw = process.env.APP_LOGIN_PASSWORD;
-
-  if (!validId || !validPw) {
-    // 環境変数が未設定の場合は安全側に倒して常に失敗させる
-    return NextResponse.json({ ok: false }, { status: 500 });
-  }
-
-  if (id === validId && pw === validPw) {
+  if (id === APP_LOGIN_ID && pw === APP_LOGIN_PASSWORD) {
     const cookieStore = await cookies();
     cookieStore.set('session', 'authenticated', {
       httpOnly: true,
